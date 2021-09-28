@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "notification-service-mock": {
+      "commandName": "Project",
+      "commandLineArgs": "host start --port 5200 --pause-on-error"
+    }
+  }
+}

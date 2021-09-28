@@ -1,0 +1,90 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Place_order": {
+                "type": "Http",
+                "inputs": {
+                    "method": "POST",
+                    "uri": "https://localhost:5001/Order/place-order",
+                    "body": "@triggerBody()"
+                },
+                "runAfter": {}
+            },
+            "Payment_accepted": {
+                "type": "If",
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@outputs('Process_payment')['statusCode']",
+                                200
+                            ]
+                        }
+                    ]
+                },
+                "actions": {
+                    "Notify_customer": {
+                        "type": "Http",
+                        "inputs": {
+                            "method": "POST",
+                            "uri": "http://localhost:5200/api/NotificationFunction",
+                            "body": "@body('Process_payment')",
+                            "retryPolicy": {
+                                "type": "exponential",
+                                "count": 10,
+                                "interval": "PT7S"
+                            }
+                        },
+                        "runAfter": {}
+                    }
+                },
+                "runAfter": {
+                    "Process_payment": [
+                        "Succeeded",
+                        "FAILED"
+                    ]
+                },
+                "else": {
+                    "actions": {
+                        "Cancel_order": {
+                            "type": "Http",
+                            "inputs": {
+                                "method": "PUT",
+                                "uri": "https://localhost:5001/Order/payment-rejected",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "body": "@body('Process_payment')"
+                            },
+                            "runAfter": {}
+                        }
+                    }
+                }
+            },
+            "Process_payment": {
+                "type": "Http",
+                "inputs": {
+                    "method": "POST",
+                    "uri": "http://localhost:5100/api/PaymentFunction",
+                    "body": "@body('Place_order')"
+                },
+                "runAfter": {
+                    "Place_order": [
+                        "Succeeded"
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "manual": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {}
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {}
+    },
+    "kind": "Stateless"
+}

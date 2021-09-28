@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "payment-service-mock": {
+      "commandName": "Project",
+      "commandLineArgs": "host start --port 5100 --pause-on-error"
+    }
+  }
+}
